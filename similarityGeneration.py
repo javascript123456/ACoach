@@ -110,14 +110,30 @@ def dataCompare(arr1,arr2):
     counter = 0
 
     for index in range(len(arr1)):
-        if arr1[index]+arr2[index] == 0:
-            similarity += 1
-            pass
-        similarity += abs(arr1[index]-arr2[index])/(arr1[index]+arr2[index])
-        print('arr1: ',arr1[index],'  arr2: ',arr2[index],"   similarity: ",similarity)
+        if (arr1[index]+arr2[index]) == 0:
+            similarity += 0
+            continue
+        dev = (abs(arr1[index]-arr2[index]))/(arr1[index]+arr2[index])
+
+        # 分段式
+        # print('arr1: ',arr1[index],'arr2: ',arr2[index],'dev: ',dev)
+        if dev <= 0.1:
+            similarity += dev * 0
+        elif dev <= 0.2:
+            similarity += dev * 0.6
+        elif dev <=0.4:
+            similarity += dev * 1
+        else:
+            similarity += dev * 1.5
+        #print('similarity: ', similarity)
+        #print('arr1: ',arr1[index],'  arr2: ',arr2[index],"   similarity: ",similarity)
         counter+=1
 
-    similarity /= counter
+    if counter != 0:
+        similarity /= counter
+    else:
+        similarity = 0
+    #print('similarity2: ',similarity)
 
     return similarity
 
@@ -237,11 +253,11 @@ def generate_video(input_path='videos/robot.mp4' , standared_data_path='data.txt
             if float(line.split(' ')[1]) < 0:
                 sampleFrame = line.split(' ')
                 sampleFrame = [float(val) for val in sampleFrame]
-                print('sampleFrame: ', sampleFrame)
+                #print('sampleFrame: ', sampleFrame)
                 continue
 
             row = line.split(' ')
-            print('row: ',row)
+            #print('row: ',row)
 
             row = [float(val) for val in row]
 
@@ -264,11 +280,11 @@ def generate_video(input_path='videos/robot.mp4' , standared_data_path='data.txt
     print('视频总帧数为', frame_count)
 
     cap = cv2.VideoCapture(input_path)
+
     frame_size = (cap.get(cv2.CAP_PROP_FRAME_WIDTH), cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     fps = cap.get(cv2.CAP_PROP_FPS)
-
     out = cv2.VideoWriter(output_path, fourcc, fps, (int(frame_size[0]), int(frame_size[1])))
 
     dataArr = []
@@ -325,9 +341,12 @@ def generate_video(input_path='videos/robot.mp4' , standared_data_path='data.txt
 
         simCounter = min(startPiece[0],startPiece[1],startPiece[2])
 
-        # 获得所有可能的运动开始帧
-        if simCounter < 0.2:
 
+        # print('simCounter: ',simCounter,'startPoint: ',startPoint)
+
+
+        # 获得所有可能的运动开始帧
+        if simCounter < 0.3:
             startPointSet.append(startPoint)
             isGetStartPoint = True
 
@@ -342,9 +361,13 @@ def generate_video(input_path='videos/robot.mp4' , standared_data_path='data.txt
 
     # 计算匹配度
     result = 100
+
+    #print('________start__________________________________________________________________________')
+
+    #print('startPointSet: ',startPointSet)
     for point in startPointSet:
         frameCount = min(frame_count - point, int(sampleFrame[0])-4)
-        print('frameCount: ',frameCount)
+        # print('frameCount: ',frameCount)
 
         tmpSim = 0
         for index in range(frameCount - 4):
@@ -352,15 +375,23 @@ def generate_video(input_path='videos/robot.mp4' , standared_data_path='data.txt
 
             for framePiece in range(3):
                 pieceResult.append(dataCompare(dataArr[point + index], standaredData[index + framePiece]))
+                #print('result: ',pieceResult[framePiece],'framePiece: ',framePiece)
 
-            tmpSim += min(pieceResult[0], pieceResult[1], pieceResult[2])
+            tmpSim1 = min(pieceResult[0], pieceResult[1], pieceResult[2])
 
-        tmpSim /= frameCount
+            tmpSim += tmpSim1
+
+        tmpSim /= (frameCount-4)
+        #print('tmpSim: ',tmpSim)
 
         result = min(result,tmpSim)
+
+    #print('result: ', result)
+    result = result * (result+0.3)
+    #print('result2: ', result)
 
     print('本次运动您的动作匹配度为: ',int((1-result)*100),'%')
 
     print('视频已保存', output_path)
 
-generate_video('trainee.mp4','sample.mp4.data.txt')
+generate_video('lyj2.mp4','lyj1.mp4.data.txt')
